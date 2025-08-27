@@ -8,7 +8,7 @@ app.use(cors());
 app.use(express.json());
 
 app.get('/', (req, res) => {
-  res.send('Assinador Digital Web API rodando!');
+  res.send('FabioSign API rodando!');
 });
 
 app.use('/api', routes);

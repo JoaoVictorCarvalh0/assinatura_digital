@@ -1,4 +1,4 @@
-// Prisma schema para Assinador Digital Web
+// Prisma schema para FabioSign
 // Banco: SQLite
 
 datasource db {
