@@ -1,46 +1,54 @@
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import {
   Box,
   Button,
   FormControl,
   FormLabel,
   Input,
+  Textarea,
   Heading,
   VStack,
-  useToast,
   Alert,
   AlertIcon,
   AlertTitle,
   AlertDescription,
   Text,
   Divider,
-} from '@chakra-ui/react';
-import axios from 'axios';
+  SimpleGrid,
+} from "@chakra-ui/react";
+import axios from "axios";
 
 function VerificacaoPage() {
   const { id: urlId } = useParams();
-  const [signatureId, setSignatureId] = useState(urlId || '');
+  const [signatureId, setSignatureId] = useState(urlId || "");
+  const [text, setText] = useState("");
+  const [signatureText, setSignatureText] = useState("");
   const [verifyResult, setVerifyResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const toast = useToast();
 
   useEffect(() => {
     if (urlId) {
       setSignatureId(urlId);
-      handleVerify(urlId);
+      handleVerifyById(urlId);
     }
   }, [urlId]);
 
-  const handleVerify = async (id = signatureId) => {
+  // Função genérica para atualizar verifyResult mesmo em erro
+  const updateVerifyResultError = (errorMessage) => {
+    setVerifyResult({
+      status: "INVÁLIDA",
+      signatario: "-",
+      algoritmo: "-",
+      dataHora: "-",
+      error: errorMessage,
+    });
+  };
+
+  // Verificação por ID
+  const handleVerifyById = async (id = signatureId) => {
     if (!id.trim()) {
-      toast({
-        title: 'ID necessário',
-        description: 'Digite o ID da assinatura.',
-        status: 'warning',
-        duration: 3000,
-        isClosable: true,
-      });
+      updateVerifyResultError("Digite o ID da assinatura.");
       return;
     }
 
@@ -48,72 +56,157 @@ function VerificacaoPage() {
     try {
       const res = await axios.get(`http://localhost:4000/api/verify/${id}`);
       setVerifyResult(res.data);
-      toast({
-        title: res.data.status === 'VÁLIDA' ? 'Assinatura válida!' : 'Assinatura inválida!',
-        status: res.data.status === 'VÁLIDA' ? 'success' : 'error',
-        duration: 3000,
-        isClosable: true,
-      });
     } catch (error) {
-      console.error('Erro na verificação:', error);
-      toast({
-        title: 'Erro na verificação',
-        description: error.response?.data?.error || 'Verifique se o backend está rodando.',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+      console.error("Erro na verificação:", error);
+      updateVerifyResultError(
+        error.response?.data?.error || "Assinatura não encontrada."
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    await handleVerify();
+  // Verificação por Texto + Assinatura
+  const handleVerifyByText = async () => {
+    if (!text.trim() || !signatureText.trim()) {
+      updateVerifyResultError("Preencha texto e assinatura.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const res = await axios.post("http://localhost:4000/api/verify-text", {
+        text,
+        signatureBase64: signatureText,
+      });
+      setVerifyResult(res.data);
+    } catch (error) {
+      console.error("Erro na verificação:", error);
+      updateVerifyResultError(
+        error.response?.data?.error || "Assinatura inválida ou não encontrada."
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <Box maxW="md" mx="auto" mt={10} p={6} bg="white" borderRadius="lg" boxShadow="lg">
-      <VStack spacing={4}>
-        <Heading as="h1" size="xl" textAlign="center" color="brand.500">
+    <Box
+      maxW='6xl'
+      mx='auto'
+      mt={10}
+      p={6}
+      bg='white'
+      borderRadius='lg'
+      boxShadow='lg'
+    >
+      <VStack spacing={6}>
+        <Heading as='h1' size='xl' textAlign='center' color='brand.500'>
           FabioSign
         </Heading>
-        <Heading as="h2" size="lg" textAlign="center">
+        <Heading as='h2' size='lg' textAlign='center'>
           Verificar Assinatura
         </Heading>
-        <form onSubmit={handleSubmit} style={{ width: '100%' }}>
-          <VStack spacing={4}>
-            <FormControl isRequired>
-              <FormLabel>ID da Assinatura</FormLabel>
-              <Input
-                value={signatureId}
-                onChange={(e) => setSignatureId(e.target.value)}
-                placeholder="Cole o ID da assinatura"
-              />
-            </FormControl>
-            <Button
-              type="submit"
-              colorScheme="brand"
-              width="full"
-              isLoading={isLoading}
-              loadingText="Verificando..."
+
+        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={10} width='100%'>
+          {/* Verificação por ID */}
+          <Box p={4} borderWidth={1} borderRadius='md' borderColor='gray.200'>
+            <Heading as='h3' size='md' mb={4}>
+              Por ID da Assinatura
+            </Heading>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleVerifyById();
+              }}
             >
-              Verificar
-            </Button>
-          </VStack>
-        </form>
+              <VStack spacing={4}>
+                <FormControl>
+                  <FormLabel>ID da Assinatura</FormLabel>
+                  <Input
+                    value={signatureId}
+                    onChange={(e) => setSignatureId(e.target.value)}
+                    placeholder='Cole o ID da assinatura'
+                  />
+                </FormControl>
+                <Button
+                  type='submit'
+                  colorScheme='brand'
+                  width='full'
+                  isLoading={isLoading}
+                  loadingText='Verificando...'
+                >
+                  Verificar por ID
+                </Button>
+              </VStack>
+            </form>
+          </Box>
+
+          {/* Verificação por Texto + Assinatura */}
+          <Box p={4} borderWidth={1} borderRadius='md' borderColor='gray.200'>
+            <Heading as='h3' size='md' mb={4}>
+              Por Texto + Assinatura
+            </Heading>
+            <VStack spacing={4}>
+              <FormControl>
+                <FormLabel>Texto</FormLabel>
+                <Textarea
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  placeholder='Cole o texto assinado'
+                  rows={4}
+                />
+              </FormControl>
+              <FormControl>
+                <FormLabel>Assinatura (Base64)</FormLabel>
+                <Textarea
+                  value={signatureText}
+                  onChange={(e) => setSignatureText(e.target.value)}
+                  placeholder='Cole a assinatura em Base64'
+                  rows={4}
+                />
+              </FormControl>
+              <Button
+                onClick={handleVerifyByText}
+                colorScheme='brand'
+                width='full'
+                isLoading={isLoading}
+                loadingText='Verificando...'
+              >
+                Verificar
+              </Button>
+            </VStack>
+          </Box>
+        </SimpleGrid>
+
+        {/* Resultado */}
         {verifyResult && (
           <>
             <Divider />
-            <Alert status={verifyResult.status === 'VÁLIDA' ? 'success' : 'error'}>
+            <Alert
+              status={verifyResult.status === "VÁLIDA" ? "success" : "error"}
+            >
               <AlertIcon />
               <Box>
                 <AlertTitle>Status: {verifyResult.status}</AlertTitle>
                 <AlertDescription>
-                  <Text><strong>Signatário:</strong> {verifyResult.signatario}</Text>
-                  <Text><strong>Algoritmo:</strong> {verifyResult.algoritmo}</Text>
-                  <Text><strong>Data/Hora:</strong> {new Date(verifyResult.dataHora).toLocaleString('pt-BR')}</Text>
+                  <Text>
+                    <strong>Signatário:</strong> {verifyResult.signatario}
+                  </Text>
+                  <Text>
+                    <strong>Algoritmo:</strong> {verifyResult.algoritmo}
+                  </Text>
+                  <Text>
+                    <strong>Data/Hora:</strong>{" "}
+                    {verifyResult.dataHora !== "-"
+                      ? new Date(verifyResult.dataHora).toLocaleString("pt-BR")
+                      : "-"}
+                  </Text>
+                  {verifyResult.error && (
+                    <Text color='red.500'>
+                      <strong>Erro:</strong> {verifyResult.error}
+                    </Text>
+                  )}
                 </AlertDescription>
               </Box>
             </Alert>
