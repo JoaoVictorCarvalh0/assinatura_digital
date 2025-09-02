@@ -194,14 +194,14 @@ function AssinaturaPage() {
             </Text>
           </Box>
         )}
-
-        <Alert status='warning'>
+        <Alert status='success'>
           <AlertIcon />
           <Box>
-            <Text fontWeight='bold'>Modo Seguro Ativado</Text>
+            <Text fontWeight='bold'>Sistema em Funcionamento</Text>
             <Text fontSize='sm'>
-              Esta tela não permite interrupções. Complete o processo ou cancele
-              completamente.
+              Esta plataforma garante a integridade e segurança de suas
+              assinaturas digitais. Por favor, complete o processo ou cancele
+              para reiniciar.
             </Text>
           </Box>
         </Alert>
